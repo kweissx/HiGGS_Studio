@@ -146,14 +146,20 @@ function renderField(f) {
       return el('label', { class: 'check' }, el('input', { id, name: f.name, type: 'checkbox', checked: !!f.default }), label);
     case 'image':
     case 'images':
+    case 'video':
       return renderUpload(f);
+    case 'preset':
+      return renderPresets(f);
   }
 }
 
 function renderUpload(f) {
   const multiple = f.type === 'images';
-  const input = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, multiple });
-  const box = el('div', { class: 'drop', tabindex: 0 }, multiple ? 'Click or drop images here' : 'Click or drop an image here');
+  const isVideo = f.type === 'video';
+  const accept = isVideo ? 'video/mp4' : 'image/png,image/jpeg,image/webp,image/gif';
+  const input = el('input', { type: 'file', accept, hidden: true, multiple });
+  const prompt = isVideo ? 'Click or drop an MP4 video here' : multiple ? 'Click or drop images here' : 'Click or drop an image here';
+  const box = el('div', { class: 'drop', tabindex: 0 }, prompt);
   const thumbs = el('div', { class: 'thumbs' });
 
   const handle = async (files) => {
@@ -170,6 +176,7 @@ function renderUpload(f) {
       box.textContent = multiple ? `${urls.length} image(s) ready. Click to replace.` : '';
       thumbs.innerHTML = '';
       if (multiple) urls.forEach((u) => thumbs.append(el('img', { src: u, alt: '' })));
+      else if (isVideo) box.prepend(el('video', { src: urls[0], muted: true, autoplay: true, loop: true, playsinline: true }), 'Video ready. Click here to replace.');
       else box.prepend(el('img', { src: urls[0], alt: '' }), 'Image ready. Click to replace.');
     } catch (e) {
       box.textContent = e.message;
@@ -185,6 +192,27 @@ function renderUpload(f) {
   box.ondrop = (e) => { e.preventDefault(); box.classList.remove('drag'); handle(e.dataTransfer.files); };
 
   return el('div', { class: 'field' }, el('span', {}, f.label), box, input, thumbs);
+}
+
+// A picker filled from Higgsfield's live style catalog (e.g. Genjutsu Restyle presets).
+function renderPresets(f) {
+  const hidden = el('input', { type: 'hidden', name: f.name });
+  const grid = el('div', { class: 'presets' }, el('span', { class: 'hint small' }, 'Loading styles…'));
+  api(`/api/presets?path=${encodeURIComponent(f.source)}`)
+    .then((data) => {
+      grid.innerHTML = '';
+      const items = data.items || [];
+      if (!items.length) grid.append(el('span', { class: 'hint small' }, 'No styles available right now.'));
+      for (const p of items) {
+        const btn = el('button', { type: 'button', class: 'preset', title: p.name, onclick: () => {
+          hidden.value = p.id;
+          grid.querySelectorAll('.preset').forEach((b) => b.classList.toggle('selected', b === btn));
+        } }, p.preview_url ? el('img', { src: p.preview_url, alt: '', loading: 'lazy' }) : null, el('span', {}, p.name));
+        grid.append(btn);
+      }
+    })
+    .catch((e) => { grid.innerHTML = ''; grid.append(el('span', { class: 'error' }, e.message)); });
+  return el('div', { class: 'field' }, el('span', {}, f.label), grid, hidden);
 }
 
 function collectBody() {
@@ -207,7 +235,7 @@ function collectBody() {
 
   for (const f of model.fields) {
     const input = form.elements[f.name];
-    if (f.type === 'image' || f.type === 'images') {
+    if (f.type === 'image' || f.type === 'images' || f.type === 'video') {
       if (state.uploads[f.name]) body[f.name] = state.uploads[f.name];
       else if (f.required) throw new Error(`Please add: ${f.label}.`);
       continue;

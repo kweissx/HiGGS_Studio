@@ -78,6 +78,49 @@ window.MODELS = [
 
   // ---------------- Videos ----------------
   {
+    id: 'genjutsu-motion',
+    name: 'Genjutsu · Motion transfer',
+    kind: 'video',
+    blurb: 'Copy the movement from a video onto your own character or images.',
+    path: '/higgsfield/genjutsu/motion-transfer/v1.0',
+    docs: 'https://docs.higgsfield.ai/docs/models/genjutsu/motion-transfer',
+    fields: [
+      { name: 'video_url', label: 'Video with the motion (4 to 30 seconds)', type: 'video', required: true },
+      { name: 'image_urls', label: 'Your character or images (1 to 8)', type: 'images', max: 8, required: true },
+      prompt(false),
+      { name: 'resolution', label: 'Resolution', type: 'select', options: ['480p', '720p', '1080p'], default: '720p' },
+    ],
+  },
+  {
+    id: 'genjutsu-swap',
+    name: 'Genjutsu · Object swap',
+    kind: 'video',
+    blurb: 'Replace an object or person in a video with something from your images.',
+    path: '/higgsfield/genjutsu/object-swap/v1.0',
+    docs: 'https://docs.higgsfield.ai/docs/models/genjutsu/object-swap',
+    fields: [
+      { name: 'video_url', label: 'Your video', type: 'video', required: true },
+      { name: 'image_urls', label: 'What to swap in (1 to 8 images)', type: 'images', max: 8, required: true },
+      { name: 'prompt', label: 'Prompt (optional): say what to replace', type: 'prompt' },
+      { name: 'resolution', label: 'Resolution', type: 'select', options: ['480p', '720p', '1080p'], default: '720p' },
+    ],
+  },
+  {
+    id: 'genjutsu-restyle',
+    name: 'Genjutsu · Restyle',
+    kind: 'video',
+    blurb: 'Turn your video into a new look, like anime or claymation.',
+    path: '/higgsfield/genjutsu/restyle/v1.0',
+    docs: 'https://docs.higgsfield.ai/docs/models/genjutsu/restyle',
+    fields: [
+      { name: 'video_url', label: 'Your video (4 to 30 seconds)', type: 'video', required: true },
+      { name: 'preset_id', label: 'Pick a style', type: 'preset', source: '/models/higgsfield/genjutsu/restyle/v1.0/presets', required: true },
+      prompt(false),
+      { name: 'image_urls', label: 'Style reference images (optional, up to 5)', type: 'images', max: 5 },
+      { name: 'resolution', label: 'Resolution', type: 'select', options: ['480p', '720p', '1080p'], default: '720p' },
+    ],
+  },
+  {
     id: 'kling-3-t2v',
     name: 'Kling 3.0 · Text to video',
     kind: 'video',

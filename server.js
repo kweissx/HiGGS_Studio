@@ -303,6 +303,17 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { ok: true });
   }
 
+  // Live style catalogs, e.g. GET /models/higgsfield/genjutsu/restyle/v1.0/presets
+  if (req.method === 'GET' && url.pathname === '/api/presets') {
+    const p = url.searchParams.get('path') || '';
+    if (!MODEL_PATH_RE.test(p) || p.includes('..') || !p.startsWith('/models/') || !p.endsWith('/presets')) {
+      return sendJson(res, 400, { error: 'Unknown style catalog.' });
+    }
+    const resp = await fetch(API_BASE + p, { headers: authHeaders() });
+    if (!resp.ok) throw await apiError(resp);
+    return sendJson(res, 200, await resp.json());
+  }
+
   // Uploads a picture/video from your computer so a model can use it (e.g. image-to-video).
   if (req.method === 'POST' && url.pathname === '/api/upload') {
     const contentType = (req.headers['content-type'] || '').split(';')[0].trim();

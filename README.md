@@ -4,6 +4,7 @@ A simple, private studio for making images and videos with the Higgsfield API, p
 It runs on your own computer: you open it in your browser, pick a model, write a prompt and press **Generate**.
 
 - Image models: SOUL V2, SOUL, Grok Image 2.0, Ideogram 4.0
+- Genjutsu: motion transfer, object swap and restyle (upload your own video)
 - Video models: Kling 3.0, Seedance 2.0, Wan 2.6, Kling 2.5 Turbo, Hailuo 2.3 (text to video and image to video)
 - **Any model**: the "Any model" tab can call any of the 80+ Higgsfield models by pasting its endpoint from the docs
 - Every result is downloaded into the `outputs` folder automatically (Higgsfield deletes its copies after about 7 days)
@@ -44,7 +45,7 @@ The key is saved in a file called `.env` inside the Studio folder. It stays on y
 ## Step 6. Create
 
 1. Pick **Image**, **Video** or **Any model** at the top.
-2. Choose a model, write your prompt, add an image if the model needs one, and press **Generate**.
+2. Choose a model, write your prompt, add an image or video if the model needs one, and press **Generate**. Genjutsu is in the **Video** tab.
 3. Your creation appears on the right when it's ready. Images take seconds, videos can take a few minutes.
 4. Check your balance and spending any time with **Balance & usage** (top right), which opens the Higgsfield Console.
 
