@@ -162,7 +162,7 @@ async function apiError(resp) {
   const hints = {
     401: 'Your API key was not accepted. Check the key ID and secret in Settings.',
     402: 'Not enough credits. Add balance in the Higgsfield Console.',
-    403: 'Your key is not allowed to use this. Check your account in the Higgsfield Console.',
+    403: 'Not enough credits. Add balance in the Higgsfield Console.',
     429: 'Too many requests right now. Wait a moment and try again.',
   };
   const err = new Error(`${hints[resp.status] || 'Higgsfield returned an error.'} (${resp.status}) ${detail}`.trim());
@@ -224,12 +224,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'POST' && url.pathname === '/api/settings') {
     const body = await readJson(req);
-    let id = String(body.keyId || '').trim();
-    let secret = String(body.keySecret || '').trim();
-    // Accept "id:secret" pasted into the first box.
+    // Remove spaces and line breaks that sneak in when copying from a note.
+    let id = String(body.keyId || '').replace(/\s+/g, '');
+    let secret = String(body.keySecret || '').replace(/\s+/g, '');
+    // Accept the whole key pasted into the first box: "id:secret", or the key ID (a UUID) followed directly by the secret.
     if (!secret && id.includes(':')) [id, secret] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)];
+    const joined = !secret && id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(.+)$/i);
+    if (joined) [id, secret] = [joined[1], joined[2]];
+    if (secret.startsWith(':')) secret = secret.slice(1);
     if (!id || !secret || /[\s"'\\]/.test(id + secret)) {
-      return sendJson(res, 400, { error: 'Please paste both the key ID and the key secret.' });
+      return sendJson(res, 400, { error: 'Please paste both the key ID and the key secret, or the whole key in the first box.' });
     }
     saveCredentials(id, secret);
     return sendJson(res, 200, { ok: true });
@@ -238,10 +242,17 @@ async function handleApi(req, res, url) {
   // Checks the key without spending credits: asks for the status of a request that does not exist.
   if (req.method === 'POST' && url.pathname === '/api/settings/test') {
     const resp = await fetch(`${API_BASE}/requests/${crypto.randomUUID()}/status`, { headers: authHeaders() });
-    if (resp.status === 401 || resp.status === 403) {
-      return sendJson(res, 200, { ok: false, message: 'Higgsfield did not accept this key. Double-check the ID and secret.' });
+    // Per the Higgsfield docs: 401 = bad credentials, 403 = insufficient credits, 404 = unknown request (key OK).
+    if (resp.status === 401) {
+      return sendJson(res, 200, { ok: false, message: 'Higgsfield did not accept this key (401). Double-check the ID and secret.' });
     }
-    return sendJson(res, 200, { ok: true, message: 'Connected. Your key works.' });
+    if (resp.status === 403) {
+      return sendJson(res, 200, { ok: true, message: 'Your key works, but your balance is empty (403). Add funds in the Higgsfield Console.' });
+    }
+    if (resp.status === 404 || resp.ok) {
+      return sendJson(res, 200, { ok: true, message: 'Connected. Your key works.' });
+    }
+    return sendJson(res, 200, { ok: false, message: `Higgsfield answered with an unexpected status (${resp.status}). Try again in a minute.` });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/history') {
