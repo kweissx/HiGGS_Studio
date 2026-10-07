@@ -1,0 +1,12 @@
+# Your API key: never commit this
+.env
+.env.*
+!.env.example
+
+# Your creations and history stay on your computer
+outputs/
+data/
+
+node_modules/
+.DS_Store
+Thumbs.db
