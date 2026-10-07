@@ -162,7 +162,7 @@ async function apiError(resp) {
   const hints = {
     401: 'Your API key was not accepted. Check the key ID and secret in Settings.',
     402: 'Not enough credits. Add balance in the Higgsfield Console.',
-    403: 'Your key is not allowed to use this. Check your account in the Higgsfield Console.',
+    403: 'Not enough credits. Add balance in the Higgsfield Console.',
     429: 'Too many requests right now. Wait a moment and try again.',
   };
   const err = new Error(`${hints[resp.status] || 'Higgsfield returned an error.'} (${resp.status}) ${detail}`.trim());
@@ -238,10 +238,17 @@ async function handleApi(req, res, url) {
   // Checks the key without spending credits: asks for the status of a request that does not exist.
   if (req.method === 'POST' && url.pathname === '/api/settings/test') {
     const resp = await fetch(`${API_BASE}/requests/${crypto.randomUUID()}/status`, { headers: authHeaders() });
-    if (resp.status === 401 || resp.status === 403) {
-      return sendJson(res, 200, { ok: false, message: 'Higgsfield did not accept this key. Double-check the ID and secret.' });
+    // Per the Higgsfield docs: 401 = bad credentials, 403 = insufficient credits, 404 = unknown request (key OK).
+    if (resp.status === 401) {
+      return sendJson(res, 200, { ok: false, message: 'Higgsfield did not accept this key (401). Double-check the ID and secret.' });
     }
-    return sendJson(res, 200, { ok: true, message: 'Connected. Your key works.' });
+    if (resp.status === 403) {
+      return sendJson(res, 200, { ok: true, message: 'Your key works, but your balance is empty (403). Add funds in the Higgsfield Console.' });
+    }
+    if (resp.status === 404 || resp.ok) {
+      return sendJson(res, 200, { ok: true, message: 'Connected. Your key works.' });
+    }
+    return sendJson(res, 200, { ok: false, message: `Higgsfield answered with an unexpected status (${resp.status}). Try again in a minute.` });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/history') {
