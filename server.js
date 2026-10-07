@@ -224,12 +224,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'POST' && url.pathname === '/api/settings') {
     const body = await readJson(req);
-    let id = String(body.keyId || '').trim();
-    let secret = String(body.keySecret || '').trim();
-    // Accept "id:secret" pasted into the first box.
+    // Remove spaces and line breaks that sneak in when copying from a note.
+    let id = String(body.keyId || '').replace(/\s+/g, '');
+    let secret = String(body.keySecret || '').replace(/\s+/g, '');
+    // Accept the whole key pasted into the first box: "id:secret", or the key ID (a UUID) followed directly by the secret.
     if (!secret && id.includes(':')) [id, secret] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)];
+    const joined = !secret && id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(.+)$/i);
+    if (joined) [id, secret] = [joined[1], joined[2]];
+    if (secret.startsWith(':')) secret = secret.slice(1);
     if (!id || !secret || /[\s"'\\]/.test(id + secret)) {
-      return sendJson(res, 400, { error: 'Please paste both the key ID and the key secret.' });
+      return sendJson(res, 400, { error: 'Please paste both the key ID and the key secret, or the whole key in the first box.' });
     }
     saveCredentials(id, secret);
     return sendJson(res, 200, { ok: true });
