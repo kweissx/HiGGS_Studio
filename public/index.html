@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Higgsfield Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%227%22 fill=%22%23d4f35a%22/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">◐</span> My Higgsfield Studio</div>
+    <div class="topbar-right">
+      <span id="keyBadge" class="badge">No API key</span>
+      <a class="link" href="https://console.higgsfield.ai" target="_blank" rel="noopener">Balance &amp; usage ↗</a>
+      <button id="openSettings" class="btn ghost">Settings</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel create">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-kind="image">Image</button>
+        <button class="tab" data-kind="video">Video</button>
+        <button class="tab" data-kind="custom">Any model</button>
+      </div>
+
+      <label class="field">
+        <span>Model</span>
+        <select id="modelSelect"></select>
+      </label>
+      <p id="modelBlurb" class="hint"></p>
+
+      <form id="genForm" autocomplete="off">
+        <div id="fields"></div>
+        <details id="advanced" class="advanced" hidden>
+          <summary>More settings</summary>
+          <div id="advancedFields"></div>
+        </details>
+        <button type="submit" id="generateBtn" class="btn primary big">Generate</button>
+        <p id="formError" class="error" hidden></p>
+        <p class="hint small">Each generation uses credits from your Higgsfield balance. Failed or blocked results are not charged.</p>
+      </form>
+    </section>
+
+    <section class="panel gallery">
+      <div class="gallery-head">
+        <h2>Your creations</h2>
+        <span class="hint small">Saved on your computer in the <code>outputs</code> folder</span>
+      </div>
+      <div id="gallery" class="grid"></div>
+      <p id="emptyGallery" class="empty">Nothing yet. Pick a model, write a prompt and press Generate.</p>
+    </section>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog" id="settingsForm" class="settings">
+      <h2>Your Higgsfield API key</h2>
+      <ol class="steps">
+        <li>Open <a href="https://console.higgsfield.ai" target="_blank" rel="noopener">console.higgsfield.ai</a> and sign in.</li>
+        <li>Create an API key. You get a <b>key ID</b> and a <b>key secret</b>.</li>
+        <li>Paste them below and press Save.</li>
+      </ol>
+      <label class="field"><span>Key ID</span><input id="keyId" type="text" spellcheck="false" /></label>
+      <label class="field"><span>Key secret</span><input id="keySecret" type="password" spellcheck="false" /></label>
+      <p class="hint small">Your key is saved only in a file called <code>.env</code> inside this Studio folder on your computer. It is never uploaded to GitHub and never shown to the web page again.</p>
+      <p id="settingsMsg" class="hint"></p>
+      <div class="row">
+        <button type="button" id="testKey" class="btn ghost">Test connection</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="btn ghost">Close</button>
+        <button type="button" id="saveKey" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="viewer">
+    <div id="viewerBody"></div>
+    <form method="dialog"><button class="btn ghost">Close</button></form>
+  </dialog>
+
+  <script src="models.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
