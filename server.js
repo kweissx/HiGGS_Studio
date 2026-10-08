@@ -13,6 +13,7 @@ const PUBLIC_DIR = path.join(ROOT, 'public');
 const OUTPUTS_DIR = path.join(ROOT, 'outputs');
 const DATA_DIR = path.join(ROOT, 'data');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
+const PREFS_FILE = path.join(DATA_DIR, 'settings.json');
 const ENV_FILE = path.join(ROOT, '.env');
 const API_BASE = process.env.HF_API_BASE || 'https://api.higgsfield.ai';
 const PORT = Number(process.env.PORT) || 5173;
@@ -209,6 +210,105 @@ async function downloadOutputs(requestId, outputs) {
   return saved;
 }
 
+// ---------- Studio preferences (name) ----------
+
+function loadPrefs() {
+  try {
+    return JSON.parse(fs.readFileSync(PREFS_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs(prefs) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(PREFS_FILE, JSON.stringify(prefs, null, 2));
+}
+
+// ---------- Prices and spending ----------
+
+function validModelPath(p) {
+  return typeof p === 'string' && MODEL_PATH_RE.test(p) && !p.includes('..') && !/^\/(requests|files|estimate|models)\b/.test(p);
+}
+
+// Asks Higgsfield what a generation with these settings will cost. Does not start a generation.
+async function estimateCost(modelPath, body) {
+  const resp = await fetch(`${API_BASE}/estimate${modelPath}`, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  if (!resp.ok) throw await apiError(resp);
+  const data = await resp.json();
+  return { usd: Number(data.usd), credits: Number(data.credits) };
+}
+
+// Only finished generations are charged: failed, blocked (nsfw) and canceled ones are refunded.
+const isCharged = (i) => i.status === 'completed';
+
+// Fills in the price of older generations that were made before prices were tracked.
+async function backfillCosts(items) {
+  const missing = items.filter((i) => isCharged(i) && i.cost_usd == null && i.path).slice(0, 25);
+  if (!missing.length) return false;
+  await Promise.all(missing.map(async (i) => {
+    try {
+      const c = await estimateCost(i.path, i.params);
+      i.cost_usd = c.usd;
+      i.cost_credits = c.credits;
+    } catch {}
+  }));
+  return true;
+}
+
+function folderSize(dir) {
+  let bytes = 0;
+  let files = 0;
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const sub = folderSize(full);
+        bytes += sub.bytes;
+        files += sub.files;
+      } else if (entry.isFile()) {
+        bytes += fs.statSync(full).size;
+        files += 1;
+      }
+    }
+  } catch {}
+  return { bytes, files };
+}
+
+async function computeStats() {
+  const items = loadHistory();
+  if (getCredentials() && (await backfillCosts(items))) {
+    // Merge into the latest file so we don't overwrite generations that finished meanwhile.
+    const latest = loadHistory();
+    for (const i of items) {
+      const l = latest.find((x) => x.request_id === i.request_id);
+      if (l && i.cost_usd != null && l.cost_usd == null) Object.assign(l, { cost_usd: i.cost_usd, cost_credits: i.cost_credits });
+    }
+    saveHistory(latest);
+  }
+  const now = new Date();
+  const sameDay = (d) => d.toDateString() === now.toDateString();
+  const sameMonth = (d) => d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  const sum = (filter) => {
+    const list = items.filter((i) => isCharged(i) && filter(new Date(i.created_at)));
+    return {
+      usd: list.reduce((t, i) => t + (Number(i.cost_usd) || 0), 0),
+      count: list.length,
+      unpriced: list.filter((i) => i.cost_usd == null).length,
+    };
+  };
+  return {
+    today: sum(sameDay),
+    month: sum(sameMonth),
+    allTime: sum(() => true),
+    storage: folderSize(OUTPUTS_DIR),
+  };
+}
+
 // ---------- API routes ----------
 
 async function handleApi(req, res, url) {
@@ -217,6 +317,7 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/settings') {
     const creds = getCredentials();
     return sendJson(res, 200, {
+      studioName: loadPrefs().studioName || 'My Higgsfield Studio',
       configured: !!creds,
       keyIdPreview: creds ? `${creds.id.slice(0, 4)}…${creds.id.slice(-4)}` : null,
     });
@@ -255,20 +356,39 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { ok: false, message: `Higgsfield answered with an unexpected status (${resp.status}). Try again in a minute.` });
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/history') {
-    return sendJson(res, 200, loadHistory());
+  if (req.method === 'POST' && url.pathname === '/api/studio-name') {
+    const { name } = await readJson(req);
+    const clean = String(name || '').replace(/[\r\n]/g, ' ').trim().slice(0, 60);
+    savePrefs({ ...loadPrefs(), studioName: clean || 'My Higgsfield Studio' });
+    return sendJson(res, 200, { ok: true });
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/history') {
+    return sendJson(res, 200, loadHistory().filter((i) => !i.hidden));
+  }
+
+  // "Remove" only hides a generation from the gallery, so your spending totals stay correct.
   if (req.method === 'DELETE' && parts[1] === 'history' && parts[2]) {
-    saveHistory(loadHistory().filter((i) => i.request_id !== parts[2]));
+    updateHistory(parts[2], { hidden: true });
     return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/stats') {
+    return sendJson(res, 200, await computeStats());
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/estimate') {
+    const { path: modelPath, body } = await readJson(req);
+    if (!validModelPath(modelPath)) return sendJson(res, 400, { error: 'That model path does not look right.' });
+    return sendJson(res, 200, await estimateCost(modelPath, body));
   }
 
   if (req.method === 'POST' && url.pathname === '/api/generate') {
     const { path: modelPath, body, model, kind } = await readJson(req);
-    if (typeof modelPath !== 'string' || !MODEL_PATH_RE.test(modelPath) || modelPath.includes('..') || modelPath.startsWith('/requests') || modelPath.startsWith('/files')) {
+    if (!validModelPath(modelPath)) {
       return sendJson(res, 400, { error: 'That model path does not look right.' });
     }
+    const estimate = estimateCost(modelPath, body).catch(() => null);
     const resp = await fetch(API_BASE + modelPath, {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
@@ -276,6 +396,7 @@ async function handleApi(req, res, url) {
     });
     if (!resp.ok) throw await apiError(resp);
     const data = await resp.json();
+    const cost = await estimate;
     const items = loadHistory();
     items.unshift({
       request_id: data.request_id,
@@ -287,6 +408,8 @@ async function handleApi(req, res, url) {
       params: body || {},
       created_at: new Date().toISOString(),
       outputs: [],
+      cost_usd: cost ? cost.usd : null,
+      cost_credits: cost ? cost.credits : null,
     });
     saveHistory(items);
     return sendJson(res, 200, data);

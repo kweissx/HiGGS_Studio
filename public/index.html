@@ -9,10 +9,10 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="logo">◐</span> My Higgsfield Studio</div>
+    <button class="brand" id="brandName" title="Click to rename">My Higgsfield Studio</button>
     <div class="topbar-right">
       <span id="keyBadge" class="badge">No API key</span>
-      <a class="link" href="https://console.higgsfield.ai" target="_blank" rel="noopener">Balance &amp; usage ↗</a>
+      <a class="link" href="https://open.higgsfield.ai" target="_blank" rel="noopener">Balance &amp; usage ↗</a>
       <button id="openSettings" class="btn ghost">Settings</button>
     </div>
   </header>
@@ -37,6 +37,7 @@
           <summary>More settings</summary>
           <div id="advancedFields"></div>
         </details>
+        <div id="priceBox" class="price muted"></div>
         <button type="submit" id="generateBtn" class="btn primary big">Generate</button>
         <p id="formError" class="error" hidden></p>
         <p class="hint small">Each generation uses credits from your Higgsfield balance. Failed or blocked results are not charged.</p>
@@ -48,6 +49,7 @@
         <h2>Your creations</h2>
         <span class="hint small">Saved on your computer in the <code>outputs</code> folder</span>
       </div>
+      <div id="stats" class="stats"></div>
       <div id="gallery" class="grid"></div>
       <p id="emptyGallery" class="empty">Nothing yet. Pick a model, write a prompt and press Generate.</p>
     </section>
@@ -55,11 +57,13 @@
 
   <dialog id="settings">
     <form method="dialog" id="settingsForm" class="settings">
-      <h2>Your Higgsfield API key</h2>
+      <h2>Settings</h2>
+      <label class="field"><span>Studio name</span><input id="studioName" type="text" maxlength="60" /></label>
+      <h3>Your Higgsfield API key</h3>
       <ol class="steps">
-        <li>Open <a href="https://console.higgsfield.ai" target="_blank" rel="noopener">console.higgsfield.ai</a> and sign in.</li>
+        <li>Open <a href="https://open.higgsfield.ai" target="_blank" rel="noopener">open.higgsfield.ai</a> and sign in.</li>
         <li>Create an API key. You get a <b>key ID</b> and a <b>key secret</b>.</li>
-        <li>Paste them below and press Save. If you saved the key as one long text, paste all of it in the first box.</li>
+        <li>Paste them below and press Save. If you saved the key as one long text, paste all of it in the first box. Leave both boxes empty to keep your current key.</li>
       </ol>
       <label class="field"><span>Key ID</span><input id="keyId" type="text" spellcheck="false" /></label>
       <label class="field"><span>Key secret</span><input id="keySecret" type="password" spellcheck="false" /></label>

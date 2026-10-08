@@ -6,7 +6,7 @@
 const ASPECTS_SOUL2 = ['1:1', '9:16', '16:9', '4:3', '3:4', '2:3', '3:2'];
 const ASPECTS_SOUL = ['4:3', '1:1', '3:4', '3:2', '2:3', '5:4', '4:5', '16:9', '9:16', '21:9'];
 const ASPECTS_GROK = ['auto', '1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2'];
-const ASPECTS_IDEOGRAM = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '4:5', '5:4', '2:1', '1:2', '3:1', '1:3'];
+const ASPECTS_IDEOGRAM = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '4:5', '5:4', '2:1', '1:2', '5:8', '8:5', '3:1', '1:3', '3:8', '8:3', '5:12', '12:5', '9:22', '22:9', '9:23', '23:9'];
 const ASPECTS_VIDEO = ['16:9', '9:16', '1:1'];
 const ASPECTS_SEEDANCE = ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'];
 
@@ -79,6 +79,7 @@ window.MODELS = [
   // ---------------- Videos ----------------
   {
     id: 'genjutsu-motion',
+    shapeNote: 'Same shape as your video.',
     name: 'Genjutsu · Motion transfer',
     kind: 'video',
     blurb: 'Copy the movement from a video onto your own character or images.',
@@ -93,6 +94,7 @@ window.MODELS = [
   },
   {
     id: 'genjutsu-swap',
+    shapeNote: 'Same shape as your video.',
     name: 'Genjutsu · Object swap',
     kind: 'video',
     blurb: 'Replace an object or person in a video with something from your images.',
@@ -107,6 +109,7 @@ window.MODELS = [
   },
   {
     id: 'genjutsu-restyle',
+    shapeNote: 'Same shape as your video.',
     name: 'Genjutsu · Restyle',
     kind: 'video',
     blurb: 'Turn your video into a new look, like anime or claymation.',
@@ -136,6 +139,7 @@ window.MODELS = [
   },
   {
     id: 'kling-3-i2v',
+    shapeNote: 'Same shape as your start image.',
     name: 'Kling 3.0 · Image to video',
     kind: 'video',
     blurb: 'Bring one of your images to life.',
@@ -166,6 +170,7 @@ window.MODELS = [
   },
   {
     id: 'seedance-2-i2v',
+    shapeNote: 'Same shape as your start image.',
     name: 'Seedance 2.0 · Image to video',
     kind: 'video',
     blurb: 'Animate an image, optionally ending on a second image.',
@@ -182,6 +187,7 @@ window.MODELS = [
   },
   {
     id: 'wan-2-6-i2v',
+    shapeNote: 'Same shape as your start image.',
     name: 'Wan 2.6 · Image to video',
     kind: 'video',
     blurb: 'Animate an image, up to 15 seconds.',
@@ -198,6 +204,7 @@ window.MODELS = [
   },
   {
     id: 'kling-25-t2v',
+    shapeNote: "This model doesn't let you choose the shape.",
     name: 'Kling 2.5 Turbo Pro · Text to video',
     kind: 'video',
     blurb: 'Fast, lower-cost text to video.',
@@ -211,6 +218,7 @@ window.MODELS = [
   },
   {
     id: 'kling-25-i2v',
+    shapeNote: 'Same shape as your start image.',
     name: 'Kling 2.5 Turbo Pro · Image to video',
     kind: 'video',
     blurb: 'Fast, lower-cost image to video.',
@@ -225,6 +233,7 @@ window.MODELS = [
   },
   {
     id: 'hailuo-23-t2v',
+    shapeNote: "This model doesn't let you choose the shape.",
     name: 'Hailuo 2.3 · Text to video',
     kind: 'video',
     blurb: 'MiniMax Hailuo, 6 or 10 seconds.',
@@ -238,6 +247,7 @@ window.MODELS = [
   },
   {
     id: 'hailuo-23-i2v',
+    shapeNote: 'Same shape as your start image.',
     name: 'Hailuo 2.3 · Image to video',
     kind: 'video',
     blurb: 'MiniMax Hailuo from a start image.',
