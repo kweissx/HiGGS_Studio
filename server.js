@@ -240,7 +240,10 @@ async function estimateCost(modelPath, body) {
   });
   if (!resp.ok) throw await apiError(resp);
   const data = await resp.json();
-  return { usd: Number(data.usd), credits: Number(data.credits) };
+  // Some models (e.g. ones priced by the length of your video) answer without a price; keep that as "unknown", not $0.
+  const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const usd = num(data.usd);
+  return { usd, credits: num(data.credits), available: usd !== null, raw: data };
 }
 
 // Only finished generations are charged: failed, blocked (nsfw) and canceled ones are refunded.
@@ -253,6 +256,7 @@ async function backfillCosts(items) {
   await Promise.all(missing.map(async (i) => {
     try {
       const c = await estimateCost(i.path, i.params);
+      if (!c.available) return;
       i.cost_usd = c.usd;
       i.cost_credits = c.credits;
     } catch {}
@@ -384,7 +388,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/generate') {
-    const { path: modelPath, body, model, kind } = await readJson(req);
+    const { path: modelPath, body, model, kind, local_cost: localCost } = await readJson(req);
     if (!validModelPath(modelPath)) {
       return sendJson(res, 400, { error: 'That model path does not look right.' });
     }
@@ -396,7 +400,11 @@ async function handleApi(req, res, url) {
     });
     if (!resp.ok) throw await apiError(resp);
     const data = await resp.json();
-    const cost = await estimate;
+    let cost = await estimate;
+    // Genjutsu has no price from Higgsfield; use the Studio's own length-based price instead.
+    if ((!cost || !cost.available) && Number.isFinite(Number(localCost)) && Number(localCost) > 0) {
+      cost = { usd: Math.round(Number(localCost) * 100) / 100, credits: null };
+    }
     const items = loadHistory();
     items.unshift({
       request_id: data.request_id,
