@@ -388,7 +388,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/generate') {
-    const { path: modelPath, body, model, kind } = await readJson(req);
+    const { path: modelPath, body, model, kind, local_cost: localCost } = await readJson(req);
     if (!validModelPath(modelPath)) {
       return sendJson(res, 400, { error: 'That model path does not look right.' });
     }
@@ -400,7 +400,11 @@ async function handleApi(req, res, url) {
     });
     if (!resp.ok) throw await apiError(resp);
     const data = await resp.json();
-    const cost = await estimate;
+    let cost = await estimate;
+    // Genjutsu has no price from Higgsfield; use the Studio's own length-based price instead.
+    if ((!cost || !cost.available) && Number.isFinite(Number(localCost)) && Number(localCost) > 0) {
+      cost = { usd: Math.round(Number(localCost) * 100) / 100, credits: null };
+    }
     const items = loadHistory();
     items.unshift({
       request_id: data.request_id,

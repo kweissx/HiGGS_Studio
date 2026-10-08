@@ -10,6 +10,10 @@ const ASPECTS_IDEOGRAM = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '4:
 const ASPECTS_VIDEO = ['16:9', '9:16', '1:1'];
 const ASPECTS_SEEDANCE = ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'];
 
+// Higgsfield gives no price in advance for Genjutsu, so the Studio works it out from the video length.
+// 720p was measured on a real Motion transfer run (4 s cost $3.47). The others are scaled by picture size, so they are guesses.
+const GENJUTSU_PER_SECOND = { '480p': 0.39, '720p': 0.87, '1080p': 1.96, measured: '720p' };
+
 const prompt = (required = true) => ({ name: 'prompt', label: 'Prompt', type: 'prompt', required });
 const image = (name, label, required = true) => ({ name, label, type: 'image', required });
 
@@ -80,6 +84,7 @@ window.MODELS = [
   {
     id: 'genjutsu-motion',
     shapeNote: 'Same shape as your video.',
+    perSecond: GENJUTSU_PER_SECOND,
     name: 'Genjutsu · Motion transfer',
     kind: 'video',
     blurb: 'Copy the movement from a video onto your own character or images.',
@@ -95,6 +100,7 @@ window.MODELS = [
   {
     id: 'genjutsu-swap',
     shapeNote: 'Same shape as your video.',
+    perSecond: GENJUTSU_PER_SECOND,
     name: 'Genjutsu · Object swap',
     kind: 'video',
     blurb: 'Replace an object or person in a video with something from your images.',
@@ -110,6 +116,7 @@ window.MODELS = [
   {
     id: 'genjutsu-restyle',
     shapeNote: 'Same shape as your video.',
+    perSecond: GENJUTSU_PER_SECOND,
     name: 'Genjutsu · Restyle',
     kind: 'video',
     blurb: 'Turn your video into a new look, like anime or claymation.',

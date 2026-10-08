@@ -2,7 +2,7 @@
 // which holds the API key. The key never reaches this page.
 
 const $ = (sel) => document.querySelector(sel);
-const state = { kind: 'image', model: null, uploads: {}, renderers: {}, polling: new Set(), estimateTimer: null, estimateSeq: 0 };
+const state = { kind: 'image', model: null, uploads: {}, renderers: {}, polling: new Set(), estimateTimer: null, estimateSeq: 0, durations: {}, localCost: null };
 
 // ---------- Small helpers ----------
 
@@ -248,6 +248,7 @@ function renderUpload(f) {
     tiles.innerHTML = '';
     urls.forEach((u, i) => {
       const media = isVideo ? el('video', { src: u, muted: true, autoplay: true, loop: true, playsinline: true }) : el('img', { src: u, alt: '' });
+      if (isVideo) media.addEventListener('loadedmetadata', () => { state.durations[u] = media.duration; scheduleEstimate(); });
       const move = (d) => { const next = [...urls]; [next[i], next[i + d]] = [next[i + d], next[i]]; setList(next); };
       tiles.append(el('div', { class: 'tile' + (isVideo ? ' wide' : '') }, media,
         multiple && urls.length > 1 ? el('span', { class: 'tile-num' }, String(i + 1)) : null,
@@ -388,6 +389,9 @@ async function updateEstimate() {
     box.textContent = 'Fill in the required parts to see the price.';
     return;
   }
+  state.localCost = null;
+  const model = state.model;
+  if (model && model.perSecond) return showLocalPrice(box, model, req.body);
   box.className = 'price muted';
   box.textContent = 'Checking price…';
   try {
@@ -412,6 +416,23 @@ async function updateEstimate() {
     box.className = 'price muted';
     box.textContent = /API key/i.test(e.message) ? 'Add your API key to see prices.' : `Price not available: ${e.message}`;
   }
+}
+
+// Price worked out in the Studio for models Higgsfield won't price in advance (Genjutsu): seconds × price per second.
+function showLocalPrice(box, model, body) {
+  const res = body.resolution || '720p';
+  const rate = model.perSecond[res];
+  const secs = state.durations[body.video_url];
+  box.innerHTML = '';
+  box.className = 'price muted';
+  if (!secs) { box.textContent = 'Reading your video length to work out the price…'; return; }
+  const usd = secs * rate;
+  state.localCost = usd;
+  box.className = 'price';
+  const how = res === model.perSecond.measured
+    ? `${secs.toFixed(1)} s × $${rate.toFixed(2)} per second, measured from a real ${res} run`
+    : `${secs.toFixed(1)} s × about $${rate.toFixed(2)} per second at ${res} (a guess, only 720p has been measured)`;
+  box.append('Price: about ', el('b', {}, money(usd)), el('div', { class: 'price-raw' }, how));
 }
 
 function money(n) {
@@ -453,7 +474,7 @@ async function onGenerate(e) {
     const r = await api('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, body, model: name, kind }),
+      body: JSON.stringify({ path, body, model: name, kind, local_cost: state.model && state.model.perSecond ? state.localCost : null }),
     });
     await loadGallery();
     poll(r.request_id);
