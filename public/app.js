@@ -397,9 +397,16 @@ async function updateEstimate() {
       body: JSON.stringify({ path: req.path, body: req.body }),
     });
     if (seq !== state.estimateSeq) return;
-    box.className = 'price';
     box.innerHTML = '';
-    box.append('Price: ', el('b', {}, money(c.usd)), el('span', { class: 'muted' }, ` · ${c.credits} credits`));
+    if (!c.available) {
+      box.className = 'price muted';
+      box.append("Higgsfield doesn't give a price for this model before it runs. Check ",
+        el('a', { href: 'https://open.higgsfield.ai', target: '_blank', rel: 'noopener' }, 'Pricing ↗'), '.',
+        el('div', { class: 'price-raw' }, `Higgsfield's answer: ${JSON.stringify(c.raw)}`));
+      return;
+    }
+    box.className = 'price';
+    box.append('Price: ', el('b', {}, money(c.usd)), c.credits != null ? el('span', { class: 'muted' }, ` · ${c.credits} credits`) : null);
   } catch (e) {
     if (seq !== state.estimateSeq) return;
     box.className = 'price muted';
