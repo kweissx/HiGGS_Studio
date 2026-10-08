@@ -7,6 +7,8 @@ It runs on your own computer: you open it in your browser, pick a model, write a
 - Genjutsu: motion transfer, object swap and restyle (upload your own video)
 - Video models: Kling 3.0, Seedance 2.0, Wan 2.6, Kling 2.5 Turbo, Hailuo 2.3 (text to video and image to video)
 - **Any model**: the "Any model" tab can call any of the 80+ Higgsfield models by pasting its endpoint from the docs
+- See the **price before you generate**, plus what you've spent today, this month and in total, and how much disk space your creations use
+- Rename your Studio: click its name at the top left
 - Every result is downloaded into the `outputs` folder automatically (Higgsfield deletes its copies after about 7 days)
 
 ---
